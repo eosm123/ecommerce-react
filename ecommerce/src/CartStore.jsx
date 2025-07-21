@@ -33,7 +33,7 @@ export const useCart = () => {
       (cartItem) => cartItem.product_id === product.id
     );
 
-    // if the product is not in the car, create new cart item and add to cart
+    // if the product is not in the cart, create new cart item and add to cart
     if (!existingCartItem) {
       const newCartItem = {
         // following the format of products.json
@@ -48,6 +48,7 @@ export const useCart = () => {
       const clone = [...cart, newCartItem];
       setCart(clone);
     } else {
+      // modify cart item to be quantity + 1 if it is found in the cart alr
       modifyQuantity(
         existingCartItem.product_id,
         existingCartItem.quantity + 1
