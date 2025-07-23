@@ -1,16 +1,19 @@
 import { atom, useAtom } from "jotai";
+import axios from "axios";
+import { useJwt } from "./UserStore";
+import { useFlashMessage } from "./FlashMessageStore";
 
 const initialCart = [
   // Sample data
-  {
-    id: 1,
-    product_id: 1,
-    quantity: 10,
-    product_name: "Organic Green Tea",
-    price: 12.99,
-    image_url: "https://picsum.photos/id/225/300/200",
-    description: "Premium Organic Green Tea",
-  },
+  // {
+  //   id: 1,
+  //   product_id: 1,
+  //   quantity: 10,
+  //   product_name: "Organic Green Tea",
+  //   price: 12.99,
+  //   image_url: "https://picsum.photos/id/225/300/200",
+  //   description: "Premium Organic Green Tea",
+  // },
 ];
 
 export const cartAtom = atom(initialCart);
@@ -18,6 +21,46 @@ export const cartAtom = atom(initialCart);
 // Creating a custom hook
 export const useCart = () => {
   const [cart, setCart] = useAtom(cartAtom);
+  const { getJwt } = useJwt();
+  const { showMessage } = useFlashMessage();
+
+  // fetch cart remotely from api
+  const fetchCart = async () => {
+    const jwt = getJwt(); // -> returns the token
+    const response = await axios
+      .get(import.meta.env.VITE_API_URL + "/api/cart", {
+        headers: {
+          Authorization: "Bearer " + jwt,
+        },
+      })
+      .catch((e) => {
+        console.error(e);
+      });
+    console.log(response.data);
+    // when calling setCart -> changes the cart in ShoppingCartPage.jsx and cause the component to re-render
+    setCart(response.data);
+  };
+
+  // this function allows addToCart, modifyQuantity and removeFromCart to save to database,
+  // initially those functions just change react UI only
+  const updateCart = async (modifiedCart) => {
+    const jwt = getJwt();
+    // when adding to shopping cart, only need product_id and quantity
+    const cartData = modifiedCart.map((cartItem) => ({
+      product_id: cartItem.product_id,
+      quantity: cartItem.quantity,
+    }));
+    await axios
+      .put(import.meta.env.VITE_API_URL + "/api/cart", {"cartItems": cartData}, {
+        headers: {
+          Authorization: "Bearer " + jwt
+        }
+      })
+      .catch((e) => {
+        console.error(e);
+        showMessage("Error updating the cart", "danger");
+      });
+  };
 
   // Contract of the product object should be:
   // id: int, primary key of the product
@@ -47,6 +90,7 @@ export const useCart = () => {
       };
       const clone = [...cart, newCartItem];
       setCart(clone);
+      updateCart(clone);
     } else {
       // modify cart item to be quantity + 1 if it is found in the cart alr
       modifyQuantity(
@@ -56,7 +100,7 @@ export const useCart = () => {
     }
   };
 
-  const modifyQuantity = (product_id, quantity) => {
+  const modifyQuantity = async (product_id, quantity) => {
     if (quantity < 1) {
       return;
     }
@@ -80,10 +124,11 @@ export const useCart = () => {
     //   }
     // });
     // Same as below
-    const clone = cart.map(
-        i => i.id !== clonedCartItem.id ? i : clonedCartItem);
-
-    setCart(clone);
+    const clone = cart.map((i) =>
+      i.id !== clonedCartItem.id ? i : clonedCartItem
+    );
+    updateCart(clone);
+    await setCart(clone);
   };
 
   const removeFromCart = (product_id) => {
@@ -96,12 +141,14 @@ export const useCart = () => {
     //     return currentItem.id !== existingCartItem
     //   })
     setCart(cloned);
+    updateCart(cloned);
   };
 
   return {
     cart,
     addToCart,
     modifyQuantity,
-    removeFromCart
+    removeFromCart,
+    fetchCart,
   };
 };

@@ -55,9 +55,22 @@ export default function Navbar() {
                   Cart
                 </Link>
               </li>
+              {/* Todo: Can consider to use jwt hook, and if jwt exists -> hide register and the login links ->
+              after user login, dont need see register and login anymore */}
               <li className="nav-item">
                 <Link className={`nav-link ${location==="/register" ? "active" : ""}`} href="/register">
                   Register
+                </Link>
+              </li>
+              <li className="nav-item">
+                <Link className={`nav-link ${location==="/login" ? "active" : ""}`} href="/login">
+                  Login
+                </Link>
+              </li>
+              {/* Todo: Only if jwt exist -> then show profile link */}
+              <li className="nav-item">
+                <Link className={`nav-link ${location==="/profile" ? "active" : ""}`} href="/profile">
+                  Profile
                 </Link>
               </li>
             </ul>

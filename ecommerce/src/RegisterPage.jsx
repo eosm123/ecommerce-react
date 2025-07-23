@@ -1,16 +1,15 @@
 import React from "react";
 import { Formik, Field, Form } from "formik";
+import axios from "axios";
 import { useLocation } from "wouter";
 import * as Yup from "yup"; // yup has alot of functions -> string, email, etc.
 // all functions from 'yup' package are available in the Yup object
 
-
 import { useFlashMessage } from "./FlashMessageStore";
 
 function RegisterPage() {
-
-    const {showMessage} = useFlashMessage();
-    const [_, setLocation] = useLocation();
+  const { showMessage } = useFlashMessage();
+  const [_, setLocation] = useLocation();
 
   const validationSchema = Yup.object({
     // value for name key must be a string and is required if not throws an error message
@@ -20,17 +19,17 @@ function RegisterPage() {
       .required("Email is required"),
     password: Yup.string()
       .min(4, "Password must be atleast 4 characters")
-    //   .matches(
-    //     /^(?=.*[!@#$%^&*()\-_=+{};:,<.>])(?=.*[A-Z]).+$/,
-    //     'Must contain at least one special character and one uppercase letter'
-    // )
+      //   .matches(
+      //     /^(?=.*[!@#$%^&*()\-_=+{};:,<.>])(?=.*[A-Z]).+$/,
+      //     'Must contain at least one special character and one uppercase letter'
+      // )
       .required("Password is required"),
     // confirm must match value of password key on top, if null -> 'please confirm pw'
     confirmPassword: Yup.string()
       .oneOf([Yup.ref("password"), null])
       .required("Please confirm password"),
     salutation: Yup.string().required("Salutation is required"),
-    country: Yup.string().required("Country is required")
+    country: Yup.string().required("Country is required"),
   });
 
   // Create an object to store initial values for each of the form field
@@ -40,22 +39,37 @@ function RegisterPage() {
     password: "",
     salutation: "",
     marketingPreferences: [],
-    country: ""
+    country: "",
   };
 
   // Function to handle the submission of the form
-  const handleSubmit = (values, formikHelpers) => {
+  const handleSubmit = async (values, formikHelpers) => {
     // formikHelpers is an object that contains useful functions for form processing
     console.log("form values =>", values);
-    setTimeout(function() {
-        // only after submitting -> set to false
-        // imagine: a RESTFUL API ENDPOINT with await axios
-        formikHelpers.setSubmitting(false); // Indicates that we have finished processing the submission of the form
-        showMessage("You have been registered!", "success");
-        // using the functions to update atom
+
+    // setTimeout(function() {
+    //     // only after submitting -> set to false
+    //     // imagine: a RESTFUL API ENDPOINT with await axios
+    //     formikHelpers.setSubmitting(false); // Indicates that we have finished processing the submission of the form
+    //     showMessage("You have been registered!", "success");
+    //     // using the functions to update atom
+    //     setLocation("/");
+    // }, 500)
+    try {
+      const response = await axios.post(
+        import.meta.env.VITE_API_URL + "/api/users/register", values);
+      // need to send the values over also
+      if (response.status == 200) {
+        showMessage("Your account has been created", "success");
         setLocation("/");
-    }, 500)
-};
+      }
+    } catch (e) {
+      showMessage("Error registering", "error");
+    } finally {
+      // after form has been processed, set to false
+      formikHelpers.setSubmitting(false);
+    }
+  };
 
   return (
     <div className="container mt-5">
@@ -81,11 +95,10 @@ function RegisterPage() {
                   name="name"
                 />
                 {/* formik.errors is an object containing all the error messages */}
-                {formik.errors.name && 
-                formik.touched.name &&
-                // touched -> object containing T/F -> if user has modified smth there -> touched will be true
+                {formik.errors.name && formik.touched.name && (
+                  // touched -> object containing T/F -> if user has modified smth there -> touched will be true
                   <div className="text-danger">{formik.errors.name}</div>
-                }
+                )}
               </div>
               <div className="mb-3">
                 <label htmlFor="email" className="form-label">
@@ -97,10 +110,9 @@ function RegisterPage() {
                   id="email"
                   name="email"
                 />
-                {formik.errors.email && 
-                formik.touched.email &&
+                {formik.errors.email && formik.touched.email && (
                   <div className="text-danger">{formik.errors.email}</div>
-                }
+                )}
               </div>
               <div className="mb-3">
                 <label htmlFor="password" className="form-label">
@@ -112,10 +124,9 @@ function RegisterPage() {
                   id="password"
                   name="password"
                 />
-                {formik.errors.password && 
-                formik.touched.password &&
+                {formik.errors.password && formik.touched.password && (
                   <div className="text-danger">{formik.errors.password}</div>
-                }
+                )}
               </div>
               <div className="mb-3">
                 <label htmlFor="confirmPassword" className="form-label">
@@ -127,10 +138,12 @@ function RegisterPage() {
                   id="confirmPassword"
                   name="confirmPassword"
                 />
-                {formik.errors.confirmPassword && 
-                formik.touched.confirmPassword &&
-                  <div className="text-danger">{formik.errors.confirmPassword}</div>
-                }
+                {formik.errors.confirmPassword &&
+                  formik.touched.confirmPassword && (
+                    <div className="text-danger">
+                      {formik.errors.confirmPassword}
+                    </div>
+                  )}
               </div>
               <div className="mb-3">
                 <label className="form-label">Salutation</label>
@@ -178,7 +191,7 @@ function RegisterPage() {
                 <div className="form-check">
                   <Field
                     className="form-check-input"
-                    value="marketing"
+                    value="email"
                     type="checkbox"
                     id="emailMarketing"
                     name="marketingPreferences"
@@ -195,10 +208,7 @@ function RegisterPage() {
                     id="smsMarketing"
                     name="marketingPreferences"
                   />
-                  <label
-                    className="form-check-label"
-                    htmlFor="smsMarketing"
-                  >
+                  <label className="form-check-label" htmlFor="smsMarketing">
                     SMS Marketing
                   </label>
                 </div>
@@ -221,9 +231,11 @@ function RegisterPage() {
                   <option value="th">Thailand</option>
                 </Field>
               </div>
-              <button type="submit" className="btn btn-primary" disabled={formik.isSubmitting}>
-                {/* when click submit form -> temporarily disable -> user cant spam click submit */}
-
+              <button
+                type="submit"
+                className="btn btn-primary"
+                disabled={formik.isSubmitting}
+              >{/* when click submit form -> temporarily disable -> user cant spam click submit */}
                 {/* submit button clicked -> send submit event (browser event)
                 -> captured in onSubmit -> call handleSubmit (by formik) -> extract values from form
                 -> pass it into values */}

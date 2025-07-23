@@ -1,8 +1,14 @@
 import { useCart } from "./CartStore";
+import { useEffect } from "react";
 
 export default function ShoppingCartPage() {
   // When calling useCart -> return {cart} object -> use destructuring to bring out cart variable
-  const { cart, modifyQuantity, removeFromCart } = useCart();
+  const { cart, modifyQuantity, removeFromCart, fetchCart } = useCart();
+
+  useEffect(() => {
+    fetchCart();
+  }, [])
+
   return (
     <>
       <div className="containter">
